@@ -16,8 +16,8 @@
 // Wifi and webserver configuration
 // #################################################
 
-#define WIFI_SSID "SSID"
-#define WIFI_PASSWORD "PASSWORD"
+#define WIFI_SSID "Dance Pad"
+#define WIFI_PASSWORD "danceboiz2019"
 
 // setup web server and register it with EmbAJAX
 EmbAJAXOutputDriverWebServerClass server(80);
@@ -84,20 +84,19 @@ void setup() {
   // load the saved threshold values so we can send them to the arduinos
   loadConfig();
 
-  // connect to wifi network with SSID and password
+  // setup a wifi network to connect to this pad ad-hoc
   Serial.begin(115200);
-  Serial.print("Connecting to wifi");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  boolean result = WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
+  
+  if (result) {
+    Serial.println("Wifi ready!");
+    Serial.print("SSID: ");
+    Serial.println(WIFI_SSID);
+    Serial.print("Password: ");
+    Serial.println(WIFI_PASSWORD);
+  } else {
+    Serial.println("Failed to setup the wifi!");
   }
-
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 
   // setup the EmbAJAX content handlers and start the webserver
   driver.installPage(&page, "/", handleUpdates);

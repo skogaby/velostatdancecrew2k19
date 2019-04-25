@@ -79,7 +79,6 @@ void loop() {
     padReadoutData.pressures[i] = analogRead(inputs[i]);
 
     if (padReadoutData.pressures[i] <= thresholdData.thresholds[i]) {
-      Serial.println("Button pressed");
       digitalWrite(outputs[i], LOW);
     } else {
       digitalWrite(outputs[i], HIGH);

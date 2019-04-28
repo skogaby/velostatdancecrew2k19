@@ -1,8 +1,9 @@
-#include <AsyncTCP.h>
+// uncomment if you want to run this on an ESP32
+// not needed if you're using an ESP8266
+// #include <EmbAJAXOutputDriverESPAsync.h>
+
 #include <EEPROM.h>
-#include <EmbAJAXOutputDriverESPAsync.h>
 #include <EmbAJAX.h>
-#include <SPI.h>
 #include <Wire.h>
 
 #include "SensorAdjustmentPage.h"

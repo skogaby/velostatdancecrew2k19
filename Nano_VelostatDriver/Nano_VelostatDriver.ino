@@ -1,15 +1,30 @@
 #include "i2cSimpleTransfer.h"
 
+// uncomment this for 5-panel (PIU) mode
+// #define __5_PANEL__ 
+// uncomment this for player 2 mode
+// #define __PLAYER_2__ 
+
 // these are the default sensitivity values we'll use, until
 // overridden by the controller board
 #define DEFAULT_SENSITIVITY 800
 
 // this board's I2C address
-#define I2C_ADDR 0x0A
+#ifdef __PLAYER_2__
+  #define I2C_ADDR 0x0B
+#else
+  #define I2C_ADDR 0x0A
+#endif
+  
 
 // keep track of the current sensor values and what the thresholds
 // are before we trigger a button press
-int numInputs = 5;
+#ifdef __5_PANEL__
+  #define NUM_INPUTS 5
+#else
+  #define NUM_INPUTS 4
+#endif
+
 int inputs[] = { A0, A1, A2, A3, A6 };
 int outputs[] = { 2, 3, 4, 5, 6 };
 
@@ -38,7 +53,7 @@ void setup() {
   Serial.begin(9600);
 
   // init IO pins
-  for (int i = 0; i < numInputs; i++) {
+  for (int i = 0; i < NUM_INPUTS; i++) {
     pinMode(inputs[i], INPUT_PULLUP);
     pinMode(inputs[i], HIGH);
     pinMode(outputs[i], OUTPUT);
@@ -75,7 +90,7 @@ void loop() {
   }
 
   // check if any of the buttons are pressed
-  for (int i = 0; i < numInputs; i++) {
+  for (int i = 0; i < NUM_INPUTS; i++) {
     padReadoutData.pressures[i] = analogRead(inputs[i]);
 
     if (padReadoutData.pressures[i] <= thresholdData.thresholds[i]) {
@@ -104,7 +119,7 @@ void receiveEvent (int len) {
         i2cSimpleRead(thresholdData);
         Serial.print("New thresholds: ");
         
-        for (int i = 0; i < numInputs; i++) {
+        for (int i = 0; i < NUM_INPUTS; i++) {
           Serial.print(thresholdData.thresholds[i]);
           Serial.print(" ");
         }

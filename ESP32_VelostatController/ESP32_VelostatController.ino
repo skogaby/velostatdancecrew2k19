@@ -17,9 +17,9 @@
 // #################################################
 
 #ifdef __5_PANEL__
-  #define WIFI_SSID "Dance Dance Revolution Pad"
-#else
   #define WIFI_SSID "Pump It Up Pad"
+#else
+  #define WIFI_SSID "Dance Dance Revolution Pad"
 #endif
 
 #define WIFI_PASSWORD "danceboiz2k19"
@@ -58,17 +58,17 @@ int i2cAddrs[2] = { I2C_SLAVE_1, I2C_SLAVE_2 };
 
 // the current thresholds for each arrow
 struct THRESHOLD_DATA {
-  uint16_t thresholds[2][5];
+  uint16_t thresholds[5];
 };
 
 // the current values of each sensor, and the last poll rate
 struct PAD_READOUT_DATA {
-  uint16_t pressures[2][5];
-  uint16_t pollRates[2];
+  uint16_t pressures[5];
+  uint16_t pollRate;
 };
 
-THRESHOLD_DATA thresholdData;
-PAD_READOUT_DATA padReadoutData;
+THRESHOLD_DATA thresholdData[2];
+PAD_READOUT_DATA padReadoutData[2];
 
 // allow us to store threshold values in EEPROM
 struct ConfigStore {
@@ -94,6 +94,9 @@ void saveConfig();
    Start the web server and setup comms with the slaves
 */
 void setup() {
+  pinMode(21, INPUT_PULLUP);
+  pinMode(22, INPUT_PULLUP);
+  
   // start I2C communications
   Wire.begin();
   Wire.setClock(400000);
@@ -139,20 +142,22 @@ void loop() {
     // send the slaves the current thresholds
     for (int i = 0; i < 2; i++) {
       Wire.beginTransmission(i2cAddrs[i]);
-      i2cSimpleWrite(thresholdData);
+      i2cSimpleWrite(thresholdData[i]);
       Wire.endTransmission();
   
       // receive the current readings from the slaves
-      Wire.requestFrom(i2cAddrs[i], sizeof(padReadoutData));
+      Wire.requestFrom(i2cAddrs[i], sizeof(padReadoutData[i]));
+      delay(10);
       
-      if (Wire.available() == sizeof(padReadoutData)) {
-          i2cSimpleRead(padReadoutData);
+      if (Wire.available() == sizeof(padReadoutData[i])) {
+          Serial.println("Receiving I2C pad readout");
+          i2cSimpleRead(padReadoutData[i]);
   
           for (int j = 0; j < NUM_INPUTS; j++) {
-            (valueDisplays[i][j])->setValue(itoa(padReadoutData.pressures[i][j], displayBufs[i][j], 10));
+            (valueDisplays[i][j])->setValue(itoa(padReadoutData[i].pressures[j], displayBufs[i][j], 10));
           }
           
-          pollrateDisplays[i]->setValue(itoa(padReadoutData.pollRates[i], pollbufs[i], 10));
+          pollrateDisplays[i]->setValue(itoa(padReadoutData[i].pollRate, pollbufs[i], 10));
       }
     }
 
@@ -169,7 +174,7 @@ void loop() {
 void initPage() {
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      (thresholdSliders[i][j])->setValue(thresholdData.thresholds[i][j]);
+      (thresholdSliders[i][j])->setValue(thresholdData[i].thresholds[j]);
     }
   }
 }
@@ -186,8 +191,8 @@ void handleUpdates() {
   
       // if the incoming value for this arrow is not what we had saved, then store
       // the value and update EEPROM
-      if (thresholdData.thresholds[i][j] != newValue) {
-        thresholdData.thresholds[i][j] = newValue;
+      if (thresholdData[i].thresholds[j] != newValue) {
+        thresholdData[i].thresholds[j] = newValue;
         shouldSave = true;
       }
     }
@@ -216,7 +221,7 @@ void loadConfig() {
   // update the thresholds with what we read from EEPROM
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      thresholdData.thresholds[i][j] = storage.thresholds[i][j];
+      thresholdData[i].thresholds[j] = storage.thresholds[i][j];
     }
   }
 }
@@ -228,7 +233,7 @@ void saveConfig() {
   // update the data we're going to store
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      storage.thresholds[i][j] = thresholdData.thresholds[i][j];
+      storage.thresholds[i][j] = thresholdData[i].thresholds[j];
     }
   }
 

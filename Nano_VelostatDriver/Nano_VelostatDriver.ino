@@ -61,6 +61,8 @@ void setup() {
   }
 
   // init I2C
+  pinMode(A4, INPUT_PULLUP);
+  pinMode(A5, INPUT_PULLUP);
   Wire.begin(I2C_ADDR);
   Wire.setClock(400000);
   Wire.onRequest(requestEvent);

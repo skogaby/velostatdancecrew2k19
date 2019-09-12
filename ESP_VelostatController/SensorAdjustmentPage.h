@@ -23,16 +23,16 @@ EmbAJAXMutableSpan p2a4display("p2a4display");
 EmbAJAXMutableSpan p2a5display("p2a5display");
 
 // sliders to adjust the threshold values
-EmbAJAXSlider p1a1slider("p1a1slider", 500, 1000, 500);
-EmbAJAXSlider p1a2slider("p1a2slider", 500, 1000, 500);
-EmbAJAXSlider p1a3slider("p1a3slider", 500, 1000, 500);
-EmbAJAXSlider p1a4slider("p1a4slider", 500, 1000, 500);
-EmbAJAXSlider p1a5slider("p1a5slider", 500, 1000, 500);
-EmbAJAXSlider p2a1slider("p2a1slider", 500, 1000, 500);
-EmbAJAXSlider p2a2slider("p2a2slider", 500, 1000, 500);
-EmbAJAXSlider p2a3slider("p2a3slider", 500, 1000, 500);
-EmbAJAXSlider p2a4slider("p2a4slider", 500, 1000, 500);
-EmbAJAXSlider p2a5slider("p2a5slider", 500, 1000, 500);
+EmbAJAXSlider p1a1slider("p1a1slider", 10, 1000, 500);
+EmbAJAXSlider p1a2slider("p1a2slider", 10, 1000, 500);
+EmbAJAXSlider p1a3slider("p1a3slider", 10, 1000, 500);
+EmbAJAXSlider p1a4slider("p1a4slider", 10, 1000, 500);
+EmbAJAXSlider p1a5slider("p1a5slider", 10, 1000, 500);
+EmbAJAXSlider p2a1slider("p2a1slider", 10, 1000, 500);
+EmbAJAXSlider p2a2slider("p2a2slider", 10, 1000, 500);
+EmbAJAXSlider p2a3slider("p2a3slider", 10, 1000, 500);
+EmbAJAXSlider p2a4slider("p2a4slider", 10, 1000, 500);
+EmbAJAXSlider p2a5slider("p2a5slider", 10, 1000, 500);
 
 #ifdef __5_PANEL__
   #define PAGE_TITLE "Pump It Up - Pad Configuration"

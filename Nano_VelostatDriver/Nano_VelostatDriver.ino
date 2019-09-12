@@ -80,9 +80,6 @@ void loop() {
     Serial.print(padReadoutData.pollRate);
     Serial.println(" Hz");
 
-    Serial.print("Pressures: ");
-    Serial.println(padReadoutData.pressures[0]);
-
     lastMillis = currentMillis;
     loops = 0;
 

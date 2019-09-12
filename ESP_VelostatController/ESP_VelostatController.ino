@@ -32,14 +32,17 @@ EmbAJAXOutputDriver driver(&server);
 // rates and sensor values
 char p1pollBuf[8], p2pollBuf[8];
 char p1a1buf[8], p1a2buf[8], p1a3buf[8], p1a4buf[8], p1a5buf[8], p2a1buf[8], p2a2buf[8], p2a3buf[8], p2a4buf[8], p2a5buf[8];
+char p1a1thresh[8], p1a2thresh[8], p1a3thresh[8], p1a4thresh[8], p1a5thresh[8], p2a1thresh[8], p2a2thresh[8], p2a3thresh[8], p2a4thresh[8], p2a5thresh[8];
 char* pollbufs[2] = { p1pollBuf, p2pollBuf };
 char* displayBufs[2][5] = { { p1a1buf, p1a2buf, p1a3buf, p1a4buf, p1a5buf },
                           { p2a1buf, p2a2buf, p2a3buf, p2a4buf, p2a5buf } };
+char* threshBufs[2][5] = { { p1a1thresh, p1a2thresh, p1a3thresh, p1a4thresh, p1a5thresh },
+                          { p2a1thresh, p2a2thresh, p2a3thresh, p2a4thresh, p2a5thresh } };
 EmbAJAXMutableSpan* pollrateDisplays[2] = { &p1pollrate, &p2pollrate };
 EmbAJAXMutableSpan* valueDisplays[2][5] = { { &p1a1display, &p1a2display, &p1a3display, &p1a4display, &p1a5display },
                                          { &p2a1display, &p2a2display, &p2a3display, &p2a4display, &p2a5display } };
-EmbAJAXSlider* thresholdSliders[2][5] = { { &p1a1slider, &p1a2slider, &p1a3slider, &p1a4slider, &p1a5slider },
-                                       { &p2a1slider, &p2a2slider, &p2a3slider, &p2a4slider, &p2a5slider } };
+EmbAJAXTextInput<BUFLEN>* thresholdInputs[2][5] = { { &p1a1threshold, &p1a2threshold, &p1a3threshold, &p1a4threshold, &p1a5threshold },
+                                         { &p2a1threshold, &p2a2threshold, &p2a3threshold, &p2a4threshold, &p2a5threshold } };
 
 // ################################################
 // Sensor and serial configuration 
@@ -195,7 +198,7 @@ void checkSerialData() {
 void initPage() {
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      (thresholdSliders[i][j])->setValue(thresholdData[i].thresholds[j]);
+      (thresholdInputs[i][j])->setValue(itoa(thresholdData[i].thresholds[j], threshBufs[i][j], 10));
     }
   }
 }
@@ -208,7 +211,7 @@ void handleUpdates() {
 
   for (int i = 0; i < 2; i ++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      int newValue = (thresholdSliders[i][j])->intValue();
+      int newValue = atoi((thresholdInputs[i][j])->value());
   
       // if the incoming value for this arrow is not what we had saved, then store
       // the value and update EEPROM

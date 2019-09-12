@@ -28,18 +28,12 @@
 EmbAJAXOutputDriverWebServerClass server(80);
 EmbAJAXOutputDriver driver(&server);
 
-// buffers to hold the strings to display on the page for our poll
-// rates and sensor values
-char p1pollBuf[8], p2pollBuf[8];
-char p1a1buf[8], p1a2buf[8], p1a3buf[8], p1a4buf[8], p1a5buf[8], p2a1buf[8], p2a2buf[8], p2a3buf[8], p2a4buf[8], p2a5buf[8];
-char* pollbufs[2] = { p1pollBuf, p2pollBuf };
-char* displayBufs[2][5] = { { p1a1buf, p1a2buf, p1a3buf, p1a4buf, p1a5buf },
-                          { p2a1buf, p2a2buf, p2a3buf, p2a4buf, p2a5buf } };
+// store our UI elements in arrays to access per play
 EmbAJAXMutableSpan* pollrateDisplays[2] = { &p1pollrate, &p2pollrate };
 EmbAJAXMutableSpan* valueDisplays[2][5] = { { &p1a1display, &p1a2display, &p1a3display, &p1a4display, &p1a5display },
-                                         { &p2a1display, &p2a2display, &p2a3display, &p2a4display, &p2a5display } };
-EmbAJAXSlider* thresholdSliders[2][5] = { { &p1a1slider, &p1a2slider, &p1a3slider, &p1a4slider, &p1a5slider },
-                                       { &p2a1slider, &p2a2slider, &p2a3slider, &p2a4slider, &p2a5slider } };
+                                            { &p2a1display, &p2a2display, &p2a3display, &p2a4display, &p2a5display } };
+EmbAJAXTextInput<BUFLEN>* thresholdInputs[2][5] = { { &p1a1threshold, &p1a2threshold, &p1a3threshold, &p1a4threshold, &p1a5threshold },
+                                         { &p2a1threshold, &p2a2threshold, &p2a3threshold, &p2a4threshold, &p2a5threshold } };
 
 // ################################################
 // Sensor and serial configuration 
@@ -178,13 +172,6 @@ void checkSerialData() {
 
     // read the poll rate
     padReadoutData[player].pollRate = receivedBytes[(NUM_INPUTS * 2) + 2] | (receivedBytes[(NUM_INPUTS * 2) + 3] << 8);
-
-    // update the UI elements with the new data
-    for (int j = 0; j < NUM_INPUTS; j++) {
-      (valueDisplays[player][j])->setValue(itoa(padReadoutData[player].pressures[j], displayBufs[player][j], 10));
-    }
-    
-    pollrateDisplays[player]->setValue(itoa(padReadoutData[player].pollRate, pollbufs[player], 10));
     newData = false;
   }
 }
@@ -195,7 +182,7 @@ void checkSerialData() {
 void initPage() {
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      (thresholdSliders[i][j])->setValue(thresholdData[i].thresholds[j]);
+      (thresholdInputs[i][j])->setValue(String(thresholdData[i].thresholds[j]).c_str());
     }
   }
 }
@@ -205,10 +192,13 @@ void initPage() {
 */
 void handleUpdates() {
   bool shouldSave = false;
+  String threshold;
 
+  // update the threshold values from the UI elements, and update
+  // the pad readout UI elements
   for (int i = 0; i < 2; i ++) {
     for (int j = 0; j < NUM_INPUTS; j++) {
-      int newValue = (thresholdSliders[i][j])->intValue();
+      int newValue = atoi((thresholdInputs[i][j])->value());
   
       // if the incoming value for this arrow is not what we had saved, then store
       // the value and update EEPROM
@@ -216,7 +206,13 @@ void handleUpdates() {
         thresholdData[i].thresholds[j] = newValue;
         shouldSave = true;
       }
+
+      // update sensor readout UI
+      (valueDisplays[i][j])->setValue(String(padReadoutData[i].pressures[j]).c_str());
     }
+
+    // update poll rate UI
+    pollrateDisplays[i]->setValue(String(padReadoutData[i].pollRate).c_str());
   }
 
   if (shouldSave) {

@@ -4,10 +4,9 @@
 
 #include <EEPROM.h>
 #include <EmbAJAX.h>
-#include <Wire.h>
 
 #include "SensorAdjustmentPage.h"
-#include "i2cSimpleTransfer.h"
+#include "SerialUtils.h"
 
 // constants for storing config values
 #define CONFIG_VERSION "v0"
@@ -43,13 +42,13 @@ EmbAJAXSlider* thresholdSliders[2][5] = { { &p1a1slider, &p1a2slider, &p1a3slide
                                        { &p2a1slider, &p2a2slider, &p2a3slider, &p2a4slider, &p2a5slider } };
 
 // ################################################
-// Sensor and I2C configuration 
+// Sensor and serial configuration 
 // ################################################
 
-#define I2C_SLAVE_1 0x0A
-#define I2C_SLAVE_2 0x0B
+#define SERIAL_ADDR_1 0x0A
+#define SERIAL_ADDR_2 0x0B
 
-int i2cAddrs[2] = { I2C_SLAVE_1, I2C_SLAVE_2 };
+uint16_t serialAddrs[2] = { SERIAL_ADDR_1, SERIAL_ADDR_2 };
 
 #ifdef __5_PANEL__
   #define NUM_INPUTS 5
@@ -59,12 +58,12 @@ int i2cAddrs[2] = { I2C_SLAVE_1, I2C_SLAVE_2 };
 
 // the current thresholds for each arrow
 struct THRESHOLD_DATA {
-  uint16_t thresholds[5];
+  uint16_t thresholds[NUM_INPUTS];
 };
 
 // the current values of each sensor, and the last poll rate
 struct PAD_READOUT_DATA {
-  uint16_t pressures[5];
+  uint16_t pressures[NUM_INPUTS];
   uint16_t pollRate;
 };
 
@@ -95,13 +94,6 @@ void saveConfig();
    Start the web server and setup comms with the slaves
 */
 void setup() {
-  pinMode(21, INPUT_PULLUP);
-  pinMode(22, INPUT_PULLUP);
-  
-  // start I2C communications
-  Wire.begin();
-  Wire.setClock(400000);
-  
   // load the saved threshold values so we can send them to the arduinos
   loadConfig();
 
@@ -134,32 +126,10 @@ void loop() {
   // keep track of our poll rate
   long currentMillis = millis();
 
-  // every second, we need to update the poll rate display,
-  // and send/receive updates from the SPI slaves to adjust
-  // sensitivities and get the latest sensor readings
+  // every second, we need to send new sensitivities to the slaves
   if (currentMillis - lastMillis > 1000) {
-    Serial.println("Updating the Arduino I2C slaves");
-
-    // send the slaves the current thresholds
     for (int i = 0; i < 2; i++) {
-      Wire.beginTransmission(i2cAddrs[i]);
-      i2cSimpleWrite(thresholdData[i]);
-      Wire.endTransmission();
-  
-      // receive the current readings from the slaves
-      Wire.requestFrom(i2cAddrs[i], sizeof(padReadoutData[i]));
-      delay(10);
-      
-      if (Wire.available() == sizeof(padReadoutData[i])) {
-          Serial.println("Receiving I2C pad readout");
-          i2cSimpleRead(padReadoutData[i]);
-  
-          for (int j = 0; j < NUM_INPUTS; j++) {
-            (valueDisplays[i][j])->setValue(itoa(padReadoutData[i].pressures[j], displayBufs[i][j], 10));
-          }
-          
-          pollrateDisplays[i]->setValue(itoa(padReadoutData[i].pollRate, pollbufs[i], 10));
-      }
+      sendThresholds(i);
     }
 
     lastMillis = currentMillis;
@@ -167,6 +137,56 @@ void loop() {
 
   // handle web clients
   driver.loopHook();
+
+  // handle incoming serial data (pad readouts and poll rates)
+  recvSerialBytes();
+  checkSerialData();
+}
+
+/**
+ * Send threshold data over serial with the specified player so we can address the packet
+ */
+void sendThresholds(int player) {
+  Serial.println("Sending new thresholds to Arduino slaves");
+  Serial.write(START_MARKER);
+
+  uint16_t addr = (player == 0) ? SERIAL_ADDR_1 : SERIAL_ADDR_2;
+  sendSerialInt(addr);
+
+  for (int i = 0; i < NUM_INPUTS; i++) {
+    sendSerialInt(thresholdData[player].thresholds[i]);
+  }
+  
+  Serial.write(END_MARKER);
+}
+
+/**
+ * Process incoming serial data from one of the Arduino slaves.
+ */
+void checkSerialData() {
+  if (newData) {
+    Serial.println("Receiving serial pad readout data");
+
+    // check which address the message came from
+    uint16_t addr = receivedBytes[0] | (receivedBytes[1] << 8);
+    int player = (addr == SERIAL_ADDR_1) ? 0 : 1;
+
+    // read the sensor readouts
+    for (int i = 0; i < NUM_INPUTS; i++) {
+      padReadoutData[player].pressures[i] = receivedBytes[(i * 2) + 2] | (receivedBytes[(i * 2) + 3] << 8);
+    }
+
+    // read the poll rate
+    padReadoutData[player].pollRate = receivedBytes[(NUM_INPUTS * 2) + 2] | (receivedBytes[(NUM_INPUTS * 2) + 3] << 8);
+
+    // update the UI elements with the new data
+    for (int j = 0; j < NUM_INPUTS; j++) {
+      (valueDisplays[player][j])->setValue(itoa(padReadoutData[player].pressures[j], displayBufs[player][j], 10));
+    }
+    
+    pollrateDisplays[player]->setValue(itoa(padReadoutData[player].pollRate, pollbufs[player], 10));
+    newData = false;
+  }
 }
 
 /**

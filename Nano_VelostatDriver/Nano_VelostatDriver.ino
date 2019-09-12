@@ -1,41 +1,42 @@
-#include "i2cSimpleTransfer.h"
-
 // uncomment this for 5-panel (PIU) mode
 // #define __5_PANEL__ 
 // uncomment this for player 2 mode
 // #define __PLAYER_2__ 
 
+#include "SerialUtils.h"
+
 // these are the default sensitivity values we'll use, until
 // overridden by the controller board
 #define DEFAULT_SENSITIVITY 800
 
-// this board's I2C address
+// set the serial address
 #ifdef __PLAYER_2__
-  #define I2C_ADDR 0x0B
+  #define SERIAL_ADDR 0x0B
 #else
-  #define I2C_ADDR 0x0A
+  #define SERIAL_ADDR 0x0A
 #endif
-  
 
 // keep track of the current sensor values and what the thresholds
 // are before we trigger a button press
 #ifdef __5_PANEL__
   #define NUM_INPUTS 5
+  int inputs[] = { A0, A1, A2, A3, A6 };
+  int outputs[] = { 2, 3, 4, 5, 6 };
 #else
   #define NUM_INPUTS 4
+  int inputs[] = { A0, A1, A2, A3, A6 };
+  int outputs[] = { 2, 3, 4, 5, 6 };
 #endif
 
-int inputs[] = { A0, A1, A2, A3, A6 };
-int outputs[] = { 2, 3, 4, 5, 6 };
 
 // the current thresholds for each arrow
 struct THRESHOLD_DATA {
-  uint16_t thresholds[5];
+  uint16_t thresholds[NUM_INPUTS];
 };
 
 // the current values of each sensor, and the last poll rate
 struct PAD_READOUT_DATA {
-  uint16_t pressures[5];
+  uint16_t pressures[NUM_INPUTS];
   uint16_t pollRate;
 };
 
@@ -50,7 +51,7 @@ int loops = 0;
  * Setup the IO pins
  */
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // init IO pins
   for (int i = 0; i < NUM_INPUTS; i++) {
@@ -59,14 +60,6 @@ void setup() {
     pinMode(outputs[i], OUTPUT);
     thresholdData.thresholds[i] = DEFAULT_SENSITIVITY;
   }
-
-  // init I2C
-  pinMode(A4, INPUT_PULLUP);
-  pinMode(A5, INPUT_PULLUP);
-  Wire.begin(I2C_ADDR);
-  Wire.setClock(400000);
-  Wire.onRequest(requestEvent);
-  Wire.onReceive (receiveEvent);
 }
 
 /**
@@ -79,7 +72,7 @@ void loop() {
   long deltaMillis = currentMillis - lastMillis;
   loops++;
 
-  // every second, update the poll rate
+  // every second, update the poll rate and send the readouts to the ESP module
   if (deltaMillis > 1000) {
     padReadoutData.pollRate = (loops / (deltaMillis / 1000.0f));
 
@@ -87,8 +80,14 @@ void loop() {
     Serial.print(padReadoutData.pollRate);
     Serial.println(" Hz");
 
+    Serial.print("Pressures: ");
+    Serial.println(padReadoutData.pressures[0]);
+
     lastMillis = currentMillis;
     loops = 0;
+
+    // update the ESP module
+    sendReadouts();
   }
 
   // check if any of the buttons are pressed
@@ -101,31 +100,55 @@ void loop() {
       digitalWrite(outputs[i], HIGH);
     }
   }
+
+  // check for updates from the ESP modules for new sensitivity thresholds and 
+  // apply them if there are any
+  recvSerialBytes();
+  checkSerialData();
 }
 
 /**
- * Send the pad readouts and poll rate to the I2C master.
+ * Send the pad readouts and poll rate to the ESP module.
  */
-void requestEvent() {
-    Serial.println("Sending pad readouts to I2C master");
-    i2cSimpleWrite(padReadoutData);
-}
+void sendReadouts() {
+    Serial.println("Sending pad readouts to ESP module");
+    Serial.write(START_MARKER);
 
-/**
- * Receive new threshold values from the I2C master.
- */
-void receiveEvent (int len) {
-    Serial.println("Reading threshold data from I2C master");
-    
-    if (len == sizeof(thresholdData)){
-        i2cSimpleRead(thresholdData);
-        Serial.print("New thresholds: ");
-        
-        for (int i = 0; i < NUM_INPUTS; i++) {
-          Serial.print(thresholdData.thresholds[i]);
-          Serial.print(" ");
-        }
-        
-        Serial.println();
+    sendSerialInt(SERIAL_ADDR);
+
+    for (int i = 0; i < NUM_INPUTS; i++) {
+      sendSerialInt(padReadoutData.pressures[i]);
     }
+
+    sendSerialInt(padReadoutData.pollRate);
+    Serial.write(END_MARKER);
+}
+
+/**
+ * Receive new threshold values from the ESP module.
+ */
+void checkSerialData() {
+  if (newData) {
+    // make sure this message was for our address and not the other player's board
+    uint16_t addr = receivedBytes[0] | (receivedBytes[1] << 8);
+
+    // read the thresholds
+    if (addr == SERIAL_ADDR) {
+      for (int i = 0; i < NUM_INPUTS; i++) {
+        thresholdData.thresholds[i] = receivedBytes[(i * 2) + 2] | (receivedBytes[(i * 2) + 3] << 8);
+      }
+      
+      Serial.println("Reading threshold data from serial master");
+      Serial.print("New thresholds: ");
+      
+      for (int i = 0; i < NUM_INPUTS; i++) {
+        Serial.print(thresholdData.thresholds[i]);
+        Serial.print(" ");
+      }
+      
+      Serial.println("");
+    }
+    
+    newData = false;
+  }
  }

@@ -73,7 +73,7 @@ void loop() {
   loops++;
 
   // every second, update the poll rate and send the readouts to the ESP module
-  if (deltaMillis > 1000) {
+  if (deltaMillis > 200) {
     padReadoutData.pollRate = (loops / (deltaMillis / 1000.0f));
 
     Serial.print("Current poll rate: ");

@@ -127,7 +127,7 @@ void loop() {
   long currentMillis = millis();
 
   // every second, we need to send new sensitivities to the slaves
-  if (currentMillis - lastMillis > 1000) {
+  if (currentMillis - lastMillis > 200) {
     for (int i = 0; i < 2; i++) {
       sendThresholds(i);
     }

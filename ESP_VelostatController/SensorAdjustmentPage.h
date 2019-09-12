@@ -6,8 +6,6 @@
 
 #include <EmbAJAX.h>
 
-#define BUFLEN 30
-
 // display for the current polling rates
 EmbAJAXMutableSpan p1pollrate("p1pollrate");
 EmbAJAXMutableSpan p2pollrate("p2pollrate");
@@ -24,17 +22,17 @@ EmbAJAXMutableSpan p2a3display("p2a3display");
 EmbAJAXMutableSpan p2a4display("p2a4display");
 EmbAJAXMutableSpan p2a5display("p2a5display");
 
-// text inputs to adjust the threshold values
-EmbAJAXTextInput<BUFLEN> p1a1threshold("p1a1threshold");
-EmbAJAXTextInput<BUFLEN> p1a2threshold("p1a2threshold");
-EmbAJAXTextInput<BUFLEN> p1a3threshold("p1a3threshold");
-EmbAJAXTextInput<BUFLEN> p1a4threshold("p1a4threshold");
-EmbAJAXTextInput<BUFLEN> p1a5threshold("p1a5threshold");
-EmbAJAXTextInput<BUFLEN> p2a1threshold("p2a1threshold");
-EmbAJAXTextInput<BUFLEN> p2a2threshold("p2a2threshold");
-EmbAJAXTextInput<BUFLEN> p2a3threshold("p2a3threshold");
-EmbAJAXTextInput<BUFLEN> p2a4threshold("p2a4threshold");
-EmbAJAXTextInput<BUFLEN> p2a5threshold("p2a5threshold");
+// sliders to adjust the threshold values
+EmbAJAXSlider p1a1slider("p1a1slider", 10, 1000, 500);
+EmbAJAXSlider p1a2slider("p1a2slider", 10, 1000, 500);
+EmbAJAXSlider p1a3slider("p1a3slider", 10, 1000, 500);
+EmbAJAXSlider p1a4slider("p1a4slider", 10, 1000, 500);
+EmbAJAXSlider p1a5slider("p1a5slider", 10, 1000, 500);
+EmbAJAXSlider p2a1slider("p2a1slider", 10, 1000, 500);
+EmbAJAXSlider p2a2slider("p2a2slider", 10, 1000, 500);
+EmbAJAXSlider p2a3slider("p2a3slider", 10, 1000, 500);
+EmbAJAXSlider p2a4slider("p2a4slider", 10, 1000, 500);
+EmbAJAXSlider p2a5slider("p2a5slider", 10, 1000, 500);
 
 #ifdef __5_PANEL__
   #define PAGE_TITLE "Pump It Up - Pad Configuration"
@@ -132,45 +130,45 @@ MAKE_EmbAJAXPage(page, PAGE_TITLE, "",
                 "<tr><td><b>"
                 ARROW_1
                 ": </b>"),
-    &p1a1threshold,
+    &p1a1slider,
     new EmbAJAXStatic("</td><td><b>"
     ARROW_1
     ": </b>"),
-    &p2a1threshold,
+    &p2a1slider,
     new EmbAJAXStatic("</td></tr><tr><td><b>"
     ARROW_2
     ": </b>"),
-    &p1a2threshold,
+    &p1a2slider,
     new EmbAJAXStatic("</td><td><b>"
     ARROW_2
     ": </b>"),
-    &p2a2threshold,
+    &p2a2slider,
     new EmbAJAXStatic("</td></tr><tr><td><b>"
     ARROW_3
     ": </b>"),
-    &p1a3threshold,
+    &p1a3slider,
     new EmbAJAXStatic("</td><td><b>"
     ARROW_3
     ": </b>"),
-    &p2a3threshold,
+    &p2a3slider,
     new EmbAJAXStatic("</td></tr><tr><td><b>"
     ARROW_4
     ": </b>"),
-    &p1a4threshold,
+    &p1a4slider,
     new EmbAJAXStatic("</td><td><b>"
     ARROW_4
     ": </b>"),
-    &p2a4threshold,
+    &p2a4slider,
     new EmbAJAXStatic("</td></tr>"),
 #ifdef __5_PANEL__
     new EmbAJAXStatic("<tr><td><b>"
     ARROW_5
     ": </b>"),
-    &p1a5threshold,
+    &p1a5slider,
     new EmbAJAXStatic("</td><td><b>"
     ARROW_5
     ": </b>"),
-    &p2a5threshold,
+    &p2a5slider,
     new EmbAJAXStatic("</td></tr>"),
 #endif
     new EmbAJAXStatic("</tbody>"
